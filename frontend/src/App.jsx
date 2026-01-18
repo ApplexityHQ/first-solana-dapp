@@ -1,8 +1,8 @@
+import { Buffer } from "buffer"
 import { useEffect, useMemo, useState } from "react"
 import { AnchorProvider, Program, web3 } from "@coral-xyz/anchor"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
-
 import idl from "./idl/anchor.json"
 
 const PROGRAM_ID = new web3.PublicKey(
@@ -32,8 +32,12 @@ export default function App() {
   // -------------------------------
   const program = useMemo(() => {
     if (!provider) return null
-    return new Program(idl, PROGRAM_ID, provider)
+
+    return Program.at(PROGRAM_ID, provider)
   }, [provider])
+
+
+
 
   // -------------------------------
   // PDA Derivation (CORE LOGIC)
@@ -56,10 +60,11 @@ export default function App() {
       const account = await program.account.counter.fetch(counterPda)
       setCounter(account.count.toString())
     } catch (err) {
-      // PDA not initialized yet — totally fine
+      console.log("Counter not initialized yet (safe)", err?.message)
       setCounter(null)
     }
   }
+
 
   // -------------------------------
   // Initialize Counter (once)
@@ -114,8 +119,36 @@ export default function App() {
   // Auto-load on wallet connect
   // -------------------------------
   useEffect(() => {
-    fetchCounter()
-  }, [program])
+    if (program && wallet.connected) {
+      fetchCounter()
+    }
+  }, [program, wallet.connected])
+
+  // -------------------------------
+  // Hard Safety Render Guard
+  // -------------------------------
+
+  if (!wallet.connected) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h2>Solana PDA Counter</h2>
+        <WalletMultiButton />
+        <p>Connect your wallet to continue.</p>
+      </div>
+    )
+  }
+
+  if (!program) {
+  return (
+    <div style={{ padding: 40 }}>
+      <h2>Solana PDA Counter</h2>
+      <WalletMultiButton />
+      <p>Initializing program…</p>
+    </div>
+  )
+}
+
+
 
   // -------------------------------
   // UI
