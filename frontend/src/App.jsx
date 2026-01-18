@@ -39,15 +39,22 @@ export default function App() {
 
 
 
+
   // -------------------------------
   // PDA Derivation (CORE LOGIC)
   // -------------------------------
-  const getCounterPDA = async () => {
-    return await web3.PublicKey.findProgramAddress(
-      [Buffer.from("counter"), wallet.publicKey.toBuffer()],
-      PROGRAM_ID
-    )
-  }
+    const getCounterPDA = () => {
+      if (!wallet.publicKey) {
+        throw new Error("Wallet not ready")
+      }
+
+      return web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("counter"), wallet.publicKey.toBuffer()],
+        PROGRAM_ID
+      )
+    }
+
+
 
   // -------------------------------
   // Fetch Counter (auto-load)
@@ -69,51 +76,61 @@ export default function App() {
   // -------------------------------
   // Initialize Counter (once)
   // -------------------------------
-  const initialize = async () => {
-    if (!program || !wallet.publicKey) return
 
-    setLoading(true)
-    try {
-      const [counterPda] = await getCounterPDA()
+const initialize = async () => {
+  if (!program || !wallet.publicKey) return
 
-      await program.methods
-        .initialize()
-        .accounts({
-          counter: counterPda,
-          authority: wallet.publicKey,
-          systemProgram: web3.SystemProgram.programId,
-        })
-        .rpc()
+  setLoading(true)
+  try {
+    const [counterPda] = getCounterPDA()
 
-      await fetchCounter()
-    } finally {
-      setLoading(false)
-    }
+    await program.methods
+      .initialize()
+      .accounts({
+        counter: counterPda,
+        authority: wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc()
+
+    await fetchCounter()
+  } catch (err) {
+    console.error("ANCHOR INIT ERROR:", err)
+    alert(err?.error?.errorMessage || err?.message)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   // -------------------------------
   // Increment Counter
   // -------------------------------
+
   const increment = async () => {
-    if (!program || !wallet.publicKey) return
+  if (!program || !wallet.publicKey) return
 
-    setLoading(true)
-    try {
-      const [counterPda] = await getCounterPDA()
+  setLoading(true)
+  try {
+    const [counterPda] = getCounterPDA()
 
-      await program.methods
-        .increment()
-        .accounts({
-          counter: counterPda,
-          authority: wallet.publicKey,
-        })
-        .rpc()
+    await program.methods
+      .increment()
+      .accounts({
+        counter: counterPda,
+        authority: wallet.publicKey,
+      })
+      .rpc()
 
-      await fetchCounter()
-    } finally {
-      setLoading(false)
-    }
+    await fetchCounter()
+  } catch (err) {
+    console.error("ANCHOR INCREMENT ERROR:", err)
+    alert(err?.error?.errorMessage || err?.message)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   // -------------------------------
   // Auto-load on wallet connect
