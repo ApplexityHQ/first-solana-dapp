@@ -1,0 +1,16 @@
+# Node
+node_modules/
+package-lock.json
+
+# Anchor / Solana
+anchor/target/
+anchor/.anchor/
+
+# Solana local validator
+test-ledger/
+
+# Rust
+target/
+
+# OS
+.DS_Store
